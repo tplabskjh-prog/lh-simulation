@@ -1,3 +1,4 @@
+// src/app/data/projectData.ts
 import type { ProjectConfig, ConsortiumConfig } from '../types/simulation';
 
 export const PROJECTS: ProjectConfig[] = [
@@ -68,7 +69,7 @@ export const DEFAULT_GS_CONSORTIUM: ConsortiumConfig = {
       penaltyScore: 0,
       isNewCompany: false,
       csIndex: 78.33,
-      bondTypeForBonus: '기업어음',  // <-- 누락되었던 부분 추가 완!
+      bondTypeForBonus: '기업어음',
       bondRatingForBonus: 'A2이상',
       mutualGrowthRating: '최우수',
       businessPlanViolations: 0,
@@ -94,7 +95,7 @@ export const DEFAULT_GS_CONSORTIUM: ConsortiumConfig = {
       penaltyScore: 0,
       isNewCompany: false,
       csIndex: null,
-      bondTypeForBonus: '없음',      // <-- 누락되었던 부분 추가 완!
+      bondTypeForBonus: '없음',
       bondRatingForBonus: null,
       mutualGrowthRating: '해당없음',
       businessPlanViolations: 0,
@@ -120,7 +121,7 @@ export const DEFAULT_GS_CONSORTIUM: ConsortiumConfig = {
       penaltyScore: 0,
       isNewCompany: false,
       csIndex: null,
-      bondTypeForBonus: '없음',      // <-- 누락되었던 부분 추가 완!
+      bondTypeForBonus: '없음',
       bondRatingForBonus: null,
       mutualGrowthRating: '해당없음',
       businessPlanViolations: 0,
@@ -146,7 +147,7 @@ export const DEFAULT_GS_CONSORTIUM: ConsortiumConfig = {
       penaltyScore: 0,
       isNewCompany: true, 
       csIndex: null,
-      bondTypeForBonus: '없음',      // <-- 누락되었던 부분 추가 완!
+      bondTypeForBonus: '없음',
       bondRatingForBonus: null,
       mutualGrowthRating: '해당없음',
       businessPlanViolations: 0,
@@ -172,7 +173,34 @@ export const DEFAULT_GS_CONSORTIUM: ConsortiumConfig = {
       penaltyScore: 0,
       isNewCompany: false,
       csIndex: null,
-      bondTypeForBonus: '없음',      // <-- 누락되었던 부분 추가 완!
+      bondTypeForBonus: '없음',
+      bondRatingForBonus: null,
+      mutualGrowthRating: '해당없음',
+      businessPlanViolations: 0,
+      defectHandlingPenalty: 0,
+    },
+    // 👇 6번째 빈 업체 추가
+    {
+      id: 'gs-empty',
+      name: '',
+      equityShare: 0,
+      isMainContractor: false,
+      isSME: false,
+      creditType: 'Corporate',
+      creditGrade: 'B0',
+      performanceUnits: 0,
+      accidentDeathRate3yr: 0,
+      safetyActivityScore: null,
+      safetyMgmtViolations: 0,
+      accidentReportViolations: 0,
+      safetyLawViolations: 0,
+      envViolations: 0,
+      qualityDefectNoticeScore: 0,
+      qualityExcellentNoticeScore: 0,
+      penaltyScore: 0,
+      isNewCompany: false,
+      csIndex: null,
+      bondTypeForBonus: '없음',
       bondRatingForBonus: null,
       mutualGrowthRating: '해당없음',
       businessPlanViolations: 0,
@@ -223,7 +251,7 @@ export const DEFAULT_DL_CONSORTIUM: ConsortiumConfig = {
       penaltyScore: 0,
       isNewCompany: false,
       csIndex: null,
-      bondTypeForBonus: '회사채',    // <-- 누락되었던 부분 추가 완!
+      bondTypeForBonus: '회사채',
       bondRatingForBonus: 'A-',
       mutualGrowthRating: '우수',
       businessPlanViolations: 0,
@@ -249,7 +277,7 @@ export const DEFAULT_DL_CONSORTIUM: ConsortiumConfig = {
       penaltyScore: 0,
       isNewCompany: false,
       csIndex: null,
-      bondTypeForBonus: '없음',      // <-- 누락되었던 부분 추가 완!
+      bondTypeForBonus: '없음',
       bondRatingForBonus: null,
       mutualGrowthRating: '해당없음',
       businessPlanViolations: 0,
@@ -275,7 +303,7 @@ export const DEFAULT_DL_CONSORTIUM: ConsortiumConfig = {
       penaltyScore: 0,
       isNewCompany: false,
       csIndex: null,
-      bondTypeForBonus: '없음',      // <-- 누락되었던 부분 추가 완!
+      bondTypeForBonus: '없음',
       bondRatingForBonus: null,
       mutualGrowthRating: '해당없음',
       businessPlanViolations: 0,
@@ -301,7 +329,7 @@ export const DEFAULT_DL_CONSORTIUM: ConsortiumConfig = {
       penaltyScore: 1.4,
       isNewCompany: false,
       csIndex: null,
-      bondTypeForBonus: '없음',      // <-- 누락되었던 부분 추가 완!
+      bondTypeForBonus: '없음',
       bondRatingForBonus: null,
       mutualGrowthRating: '해당없음',
       businessPlanViolations: 0,
@@ -327,7 +355,34 @@ export const DEFAULT_DL_CONSORTIUM: ConsortiumConfig = {
       penaltyScore: 0,
       isNewCompany: false,
       csIndex: null,
-      bondTypeForBonus: '없음',      // <-- 누락되었던 부분 추가 완!
+      bondTypeForBonus: '없음',
+      bondRatingForBonus: null,
+      mutualGrowthRating: '해당없음',
+      businessPlanViolations: 0,
+      defectHandlingPenalty: 0,
+    },
+    // 👇 6번째 빈 업체 추가
+    {
+      id: 'dl-empty',
+      name: '',
+      equityShare: 0,
+      isMainContractor: false,
+      isSME: false,
+      creditType: 'Corporate',
+      creditGrade: 'B0',
+      performanceUnits: 0,
+      accidentDeathRate3yr: 0,
+      safetyActivityScore: null,
+      safetyMgmtViolations: 0,
+      accidentReportViolations: 0,
+      safetyLawViolations: 0,
+      envViolations: 0,
+      qualityDefectNoticeScore: 0,
+      qualityExcellentNoticeScore: 0,
+      penaltyScore: 0,
+      isNewCompany: false,
+      csIndex: null,
+      bondTypeForBonus: '없음',
       bondRatingForBonus: null,
       mutualGrowthRating: '해당없음',
       businessPlanViolations: 0,

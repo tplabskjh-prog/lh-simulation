@@ -21,7 +21,6 @@ interface SimStore {
   gsConsortium: ConsortiumConfig;
   dlConsortium: ConsortiumConfig;
 
-  // 👇 CSV 데이터를 들고 있을 상태와 함수
   companyDB: CompanyData[];
   isLoadingDB: boolean;
   loadCompanyDB: () => Promise<void>;
@@ -44,31 +43,7 @@ function patchMembers(members: ConsortiumMember[], memberId: string, patch: Part
   return members.map((m) => (m.id === memberId ? { ...m, ...patch } : m));
 }
 
-function adjustEquity(members: ConsortiumMember[], targetId: string, newShare: number): ConsortiumMember[] {
-  const clamped = Math.max(1, Math.min(99, newShare));
-  const others = members.filter((m) => m.id !== targetId);
-  const othersTotal = others.reduce((s, m) => s + m.equityShare, 0);
-  const remaining = 100 - clamped;
-
-  const adjusted = others.map((m) => ({
-    ...m,
-    equityShare: othersTotal > 0
-      ? Math.max(0, parseFloat(((m.equityShare / othersTotal) * remaining).toFixed(2)))
-      : parseFloat((remaining / others.length).toFixed(2)),
-  }));
-
-  const sum = clamped + adjusted.reduce((s, m) => s + m.equityShare, 0);
-  const diff = parseFloat((100 - sum).toFixed(2));
-  if (diff !== 0 && adjusted.length > 0) {
-    const maxIdx = adjusted.reduce((mi, m, i, arr) => (m.equityShare > arr[mi].equityShare ? i : mi), 0);
-    adjusted[maxIdx].equityShare = parseFloat((adjusted[maxIdx].equityShare + diff).toFixed(2));
-  }
-
-  return members.map((m) => {
-    if (m.id === targetId) return { ...m, equityShare: clamped };
-    return adjusted.find((a) => a.id === m.id) ?? m;
-  });
-}
+// 🚨 기존에 있던 자동 분배 로직(adjustEquity) 함수는 완전히 삭제되었습니다!
 
 export const useSimStore = create<SimStore>((set, get) => ({
   projects: PROJECTS,
@@ -91,7 +66,6 @@ export const useSimStore = create<SimStore>((set, get) => ({
   gsConsortium: DEFAULT_GS_CONSORTIUM,
   dlConsortium: DEFAULT_DL_CONSORTIUM,
 
-  // 👇 CSV 데이터 로드 및 덮어쓰기 로직
   companyDB: [],
   isLoadingDB: false,
   loadCompanyDB: async () => {
@@ -140,12 +114,16 @@ export const useSimStore = create<SimStore>((set, get) => ({
   updateGsFinancials: (key, value) => set((s) => ({ gsConsortium: { ...s.gsConsortium, financials: { ...s.gsConsortium.financials, [key]: value } } })),
   updateGsMember: (memberId, patch) => set((s) => ({ gsConsortium: { ...s.gsConsortium, members: patchMembers(s.gsConsortium.members, memberId, patch) } })),
   updateGsConsortium: (patch) => set((s) => ({ gsConsortium: { ...s.gsConsortium, ...patch } })),
-  updateGsEquity: (memberId, newShare) => set((s) => ({ gsConsortium: { ...s.gsConsortium, members: adjustEquity(s.gsConsortium.members, memberId, newShare) } })),
+  
+  // 👇 지분율 입력 시, 다른 업체에 영향을 주지 않고 해당 업체 값만 단독으로 변경되도록 수정되었습니다.
+  updateGsEquity: (memberId, newShare) => set((s) => ({ gsConsortium: { ...s.gsConsortium, members: patchMembers(s.gsConsortium.members, memberId, { equityShare: newShare }) } })),
 
   updateDlFinancials: (key, value) => set((s) => ({ dlConsortium: { ...s.dlConsortium, financials: { ...s.dlConsortium.financials, [key]: value } } })),
   updateDlMember: (memberId, patch) => set((s) => ({ dlConsortium: { ...s.dlConsortium, members: patchMembers(s.dlConsortium.members, memberId, patch) } })),
   updateDlConsortium: (patch) => set((s) => ({ dlConsortium: { ...s.dlConsortium, ...patch } })),
-  updateDlEquity: (memberId, newShare) => set((s) => ({ dlConsortium: { ...s.dlConsortium, members: adjustEquity(s.dlConsortium.members, memberId, newShare) } })),
+  
+  // 👇 지분율 단독 변경 (DL건설 측)
+  updateDlEquity: (memberId, newShare) => set((s) => ({ dlConsortium: { ...s.dlConsortium, members: patchMembers(s.dlConsortium.members, memberId, { equityShare: newShare }) } })),
 
   resetToDefaults: () => {
     const { selectedProjectId } = get();

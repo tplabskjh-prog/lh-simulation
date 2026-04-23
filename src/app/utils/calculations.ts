@@ -192,7 +192,8 @@ export function calcLhTechScore(count: number): number {
 
 export function calcNewCompanyScore(members: ConsortiumMember[]): number {
   const rawScore = members.reduce((sum, m) => {
-    if (!m.isNewCompany) return sum;
+    // 🚨 신규 업체가 아니거나, 지분율이 10% 미만이면 가점 부여하지 않음
+    if (!m.isNewCompany || m.equityShare < 10) return sum;
     return sum + (m.isMainContractor ? 4 : 1);
   }, 0);
   return Math.min(rawScore, 3);
