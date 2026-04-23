@@ -1,0 +1,20 @@
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+
+/* ── Dashboard dark theme overrides ────────────────────────────── */
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+  background-color: #020617; /* slate-950 */
+  font-family: 'GmarketSans', sans-serif;
+}
+
+/* ── 스크롤바 영역 숨김 (스크롤 기능은 정상 동작) ────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE, Edge */
+  scrollbar-width: none; /* Firefox */
+}
