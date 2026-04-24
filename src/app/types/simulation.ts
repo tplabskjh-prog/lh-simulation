@@ -1,6 +1,4 @@
-// ─────────────────────────────────────────────
-// Core type definitions for LH 평가 Simulator
-// ─────────────────────────────────────────────
+// src/app/types/simulation.ts
 
 export type CreditGrade =
   | 'AAA' | 'AA+' | 'AA0' | 'AA-'
@@ -36,15 +34,13 @@ export interface ConsortiumMember {
   isNewCompany: boolean;
   csIndex: number | null;
 
-  // 👇 여기가 원인입니다! 이 줄이 빠져있었습니다.
   bondTypeForBonus: '회사채' | '기업어음' | '없음'; 
   bondRatingForBonus: string | null;
   
   mutualGrowthRating: MutualGrowthRating;
 
-  // [추가됨] 업체별 가감점 항목
-  businessPlanViolations: number; // 사업계획 이행 노력도 위반 건수
-  defectHandlingPenalty: number;  // 하자처리 이행 노력도 감점 (점수)
+  businessPlanViolations: number; 
+  defectHandlingPenalty: number;  
 }
 
 export interface ConsortiumConfig {
@@ -65,15 +61,21 @@ export interface ConsortiumConfig {
   oscMaxScore: boolean;
   illegalActivityReports: number;
 
-  // [추가됨] 브랜드 적용 여부
   brandApplication: 'main' | 'rental' | 'none';
 
   nonQuantitativeScore: number;
   priceScore: number;
 }
 
+// 👇 회차(Phase) 데이터 타입 추가
+export interface PhaseConfig {
+  id: string;
+  name: string;
+}
+
 export interface ProjectConfig {
   id: string;
+  phaseId: string; // 👇 어느 회차에 속하는지 식별
   name: string;
   type: string;
   units: number;
@@ -112,7 +114,7 @@ export interface AdjustmentScores {
   illegalActivity: number;
   businessPlan: number;
   defectHandling: number;
-  brand: number; // [추가됨]
+  brand: number; 
   osc: number;
   qualityDefect: number;
   qualityExcellent: number;
@@ -129,11 +131,4 @@ export interface ScoreResult {
   nonQuantitative: number;
   priceEvaluation: number;
   grandTotal: number;
-}
-
-export interface SimulationState {
-  selectedProjectId: string;
-  projects: ProjectConfig[];
-  gsConsortium: ConsortiumConfig;
-  dlConsortium: ConsortiumConfig;
 }

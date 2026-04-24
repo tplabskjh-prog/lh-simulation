@@ -1,3 +1,4 @@
+// src/app/components/ComparisonCharts.tsx
 import {
   RadarChart,
   PolarGrid,
@@ -19,12 +20,13 @@ import type { ScoreResult } from '../types/simulation';
 interface Props {
   gsScore: ScoreResult;
   dlScore: ScoreResult;
+  gsShortName: string;
+  dlShortName: string;
 }
 
 const BLUE = '#60a5fa';
 const ORANGE = '#fb923c';
 
-// Radar 데이터: 각 항목을 0~100 스케일로 정규화
 function buildRadarData(gs: ScoreResult, dl: ScoreResult) {
   const normalize = (val: number, max: number) => Math.max(0, Math.min(100, (val / max) * 100));
 
@@ -74,7 +76,6 @@ function buildRadarData(gs: ScoreResult, dl: ScoreResult) {
   ];
 }
 
-// Bar 데이터: 항목별 GS vs DL 절대점수 비교
 function buildBarData(gs: ScoreResult, dl: ScoreResult) {
   return [
     { name: '재무상태', GS: +gs.quantitative.financialState.toFixed(2), DL: +dl.quantitative.financialState.toFixed(2) },
@@ -90,7 +91,6 @@ function buildBarData(gs: ScoreResult, dl: ScoreResult) {
   ];
 }
 
-// Gap 차트: 항목별 GS - DL 차이
 function buildGapData(gs: ScoreResult, dl: ScoreResult) {
   const gap = (a: number, b: number) => +(a - b).toFixed(3);
   return [
@@ -123,16 +123,14 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-export function ComparisonCharts({ gsScore, dlScore }: Props) {
+export function ComparisonCharts({ gsScore, dlScore, gsShortName, dlShortName }: Props) {
   const radarData = buildRadarData(gsScore, dlScore);
   const barData = buildBarData(gsScore, dlScore);
   const gapData = buildGapData(gsScore, dlScore);
 
   return (
     <div className="space-y-4">
-      {/* 레이더 차트 + Gap 차트 */}
       <div className="grid grid-cols-2 gap-4">
-        {/* 레이더 차트 */}
         <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
           <h4 className="text-slate-200 mb-3" style={{ fontWeight: 700, fontSize: '0.85rem' }}>
             평가항목 방사형 비교 (정규화 0~100)
@@ -144,8 +142,8 @@ export function ComparisonCharts({ gsScore, dlScore }: Props) {
                 dataKey="subject"
                 tick={{ fill: '#9ca3af', fontSize: 11 }}
               />
-              <Radar name="GS컨소" dataKey="GS" stroke={BLUE} fill={BLUE} fillOpacity={0.15} strokeWidth={2} />
-              <Radar name="DL컨소" dataKey="DL" stroke={ORANGE} fill={ORANGE} fillOpacity={0.15} strokeWidth={2} />
+              <Radar name={gsShortName} dataKey="GS" stroke={BLUE} fill={BLUE} fillOpacity={0.15} strokeWidth={2} />
+              <Radar name={dlShortName} dataKey="DL" stroke={ORANGE} fill={ORANGE} fillOpacity={0.15} strokeWidth={2} />
               <Legend
                 wrapperStyle={{ fontSize: '0.72rem', color: '#9ca3af' }}
               />
@@ -153,10 +151,9 @@ export function ComparisonCharts({ gsScore, dlScore }: Props) {
           </ResponsiveContainer>
         </div>
 
-        {/* Gap 차트 */}
         <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
           <h4 className="text-slate-200 mb-3" style={{ fontWeight: 700, fontSize: '0.85rem' }}>
-            항목별 GS - DL 점수 격차
+            항목별 {gsShortName} - {dlShortName} 점수 격차
           </h4>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart
@@ -176,7 +173,7 @@ export function ComparisonCharts({ gsScore, dlScore }: Props) {
               <ReferenceLine x={0} stroke="#64748b" strokeWidth={1.5} />
               <Bar
                 dataKey="gap"
-                name="GS - DL"
+                name={`${gsShortName} - ${dlShortName}`}
                 radius={[0, 3, 3, 0]}
               >
                 {gapData.map((entry, index) => (
@@ -188,7 +185,6 @@ export function ComparisonCharts({ gsScore, dlScore }: Props) {
         </div>
       </div>
 
-      {/* 항목별 절대점수 막대 차트 */}
       <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
         <h4 className="text-slate-200 mb-3" style={{ fontWeight: 700, fontSize: '0.85rem' }}>
           평가항목별 절대점수 비교
@@ -200,8 +196,8 @@ export function ComparisonCharts({ gsScore, dlScore }: Props) {
             <YAxis tick={{ fill: '#9ca3af', fontSize: 10 }} />
             <Tooltip content={<CustomTooltip />} />
             <Legend wrapperStyle={{ fontSize: '0.72rem', color: '#9ca3af' }} />
-            <Bar dataKey="GS" name="GS컨소" fill={BLUE} radius={[3, 3, 0, 0]} />
-            <Bar dataKey="DL" name="DL컨소" fill={ORANGE} radius={[3, 3, 0, 0]} />
+            <Bar dataKey="GS" name={gsShortName} fill={BLUE} radius={[3, 3, 0, 0]} />
+            <Bar dataKey="DL" name={dlShortName} fill={ORANGE} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

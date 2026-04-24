@@ -30,7 +30,9 @@ export interface CompanyData {
 
 function parseNum(val: any, defaultVal: number = 0): number {
   if (val === null || val === undefined) return defaultVal;
-  const str = String(val).replace(/,/g, '').trim();
+  
+  const str = String(val).replace(/최근1년\s*/g, '').replace(/,/g, '').trim();
+  
   if (str === '해당없음' || str === '#N/A' || str === '') return defaultVal;
   
   const matched = str.match(/-?\d+(\.\d+)?/);
@@ -39,7 +41,9 @@ function parseNum(val: any, defaultVal: number = 0): number {
 
 function parseNullableNum(val: any): number | null {
   if (val === null || val === undefined) return null;
-  const str = String(val).replace(/,/g, '').trim();
+  
+  const str = String(val).replace(/최근1년\s*/g, '').replace(/,/g, '').trim();
+  
   if (str === '해당없음' || str === '#N/A' || str === '') return null;
   
   const matched = str.match(/-?\d+(\.\d+)?/);
@@ -99,6 +103,7 @@ export async function fetchCompanyDB(): Promise<CompanyData[]> {
               illegalActivityReports: parseNum(getVal('건설현장 불법행위 신고', '불법행위')),
               businessPlanViolations: parseNum(getVal('사업계획 이행 노력도', '사업계획')),
               defectHandlingPenalty: parseNum(getVal('하자처리 이행 노력도', '하자처리')),
+              // 👇 곱셈 로직 제거 (건수 그대로 저장)
               qualityDefectNoticeScore: parseNum(getVal('품질미흡 통지서', '품질미흡')),
               qualityExcellentNoticeScore: parseNum(getVal('품질우수 통지서', '품질우수')),
               penaltyScore: parseNum(getVal('벌점')),
@@ -116,7 +121,6 @@ export async function fetchCompanyDB(): Promise<CompanyData[]> {
   }
 }
 
-// 👇 새로 추가된 재무상태 평가배점 파싱 함수
 export async function parseFinancialCSV(file: File): Promise<{ gs: any; dl: any }> {
   return new Promise((resolve, reject) => {
     Papa.parse(file, {
@@ -128,10 +132,9 @@ export async function parseFinancialCSV(file: File): Promise<{ gs: any; dl: any 
 
         results.data.forEach((row: any) => {
           if (!Array.isArray(row) || row.length === 0) return;
-          const title = String(row[0]).replace(/\s/g, ''); // 공백 제거하여 헤더 매칭
+          const title = String(row[0]).replace(/\s/g, ''); 
           
           if (['수익성비율', '안정성비율', '활동성비율', '성장성비율'].includes(title)) {
-            // 한 행에서 숫자들만 순서대로 추출
             const nums = row.map(v => {
               const str = String(v).trim();
               if (!str || str === '-' || str.includes('비율')) return NaN;
@@ -139,7 +142,6 @@ export async function parseFinancialCSV(file: File): Promise<{ gs: any; dl: any 
               return matched ? parseFloat(matched[0]) : NaN;
             }).filter(v => !isNaN(v));
 
-            // 데이터 포맷 기준 첫 4개의 숫자가 [당컨소 평가배점, 상대컨소 평가배점, 당컨소 LH환산배점, 상대컨소 LH환산배점] 순서로 배치됨
             if (nums.length >= 4) {
               const gsScore = nums[2];
               const dlScore = nums[3];

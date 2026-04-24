@@ -1,6 +1,7 @@
+// src/app/components/Sidebar.tsx
 import { Building2, ChevronRight, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useSimStore } from '../store/simulationStore';
-import { calculateScores } from '../utils/calculations';
+import { calculateScores, getConsortiumName, getShortName } from '../utils/calculations';
 
 export function Sidebar() {
   const { projects, selectedProjectId, setSelectedProject, gsConsortium, dlConsortium, selectedProject } =
@@ -11,9 +12,13 @@ export function Sidebar() {
   const dlScore = calculateScores(dlConsortium, project);
   const diff = gsScore.combinedTotal - dlScore.combinedTotal;
 
+  const gsName = getConsortiumName(gsConsortium);
+  const dlName = getConsortiumName(dlConsortium);
+  const gsShortName = getShortName(gsConsortium);
+  const dlShortName = getShortName(dlConsortium);
+
   return (
     <aside className="w-64 min-h-screen bg-slate-900 border-r border-slate-700 flex flex-col">
-      {/* Header */}
       <div className="p-4 border-b border-slate-700">
         <div className="flex items-center gap-2 mb-1">
           <Building2 className="text-blue-400" size={20} />
@@ -29,7 +34,6 @@ export function Sidebar() {
         </p>
       </div>
 
-      {/* Project List */}
       <div className="p-3 flex-1">
         <p className="text-slate-500 mb-2 px-1" style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
           사업장 선택
@@ -57,18 +61,16 @@ export function Sidebar() {
         </nav>
       </div>
 
-      {/* Score Summary */}
       <div className="p-3 border-t border-slate-700">
         <p className="text-slate-500 mb-3 px-1" style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
           현재 시뮬레이션 결과
         </p>
 
         <div className="space-y-2">
-          {/* GS */}
           <div className="bg-slate-800 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-2 h-2 rounded-full bg-blue-400" />
-              <span className="text-blue-300" style={{ fontSize: '0.7rem', fontWeight: 700 }}>GS건설 컨소시엄</span>
+              <span className="text-blue-300" style={{ fontSize: '0.7rem', fontWeight: 700 }}>{gsName}</span>
             </div>
             <div className="flex items-end justify-between">
               <span className="text-white" style={{ fontSize: '1.4rem', fontWeight: 700, lineHeight: 1 }}>
@@ -86,11 +88,10 @@ export function Sidebar() {
             </div>
           </div>
 
-          {/* DL */}
           <div className="bg-slate-800 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-2 h-2 rounded-full bg-orange-400" />
-              <span className="text-orange-300" style={{ fontSize: '0.7rem', fontWeight: 700 }}>DL건설 컨소시엄</span>
+              <span className="text-orange-300" style={{ fontSize: '0.7rem', fontWeight: 700 }}>{dlName}</span>
             </div>
             <div className="flex items-end justify-between">
               <span className="text-white" style={{ fontSize: '1.4rem', fontWeight: 700, lineHeight: 1 }}>
@@ -108,14 +109,13 @@ export function Sidebar() {
             </div>
           </div>
 
-          {/* Gap */}
           <div className={`rounded-lg p-3 flex items-center justify-between ${
             diff > 0 ? 'bg-blue-950 border border-blue-700' : diff < 0 ? 'bg-orange-950 border border-orange-700' : 'bg-slate-800 border border-slate-600'
           }`}>
             <div>
               <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}
                 className={diff > 0 ? 'text-blue-400' : diff < 0 ? 'text-orange-400' : 'text-slate-400'}>
-                GS vs DL 격차
+                {gsShortName} vs {dlShortName} 격차
               </div>
               <div className="text-white" style={{ fontSize: '1.2rem', fontWeight: 700 }}>
                 {diff > 0 ? '+' : ''}{diff.toFixed(2)}

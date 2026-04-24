@@ -1,8 +1,4 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// LH 평가점수 계산 엔진
-// PDF 근거: 평택고덕 A-70BL 계량+가감점 집계표
-// ─────────────────────────────────────────────────────────────────────────────
-
+// src/app/utils/calculations.ts
 import type {
   ConsortiumConfig,
   ProjectConfig,
@@ -53,39 +49,43 @@ export function getCreditGradeScore(grade: string, isMainContractor: boolean): n
   }
 }
 
+// 👇 회사채/기업어음 등급 인식 로직 대폭 강화 (A1, A20, AAA 등 다양한 텍스트 대응)
 export function getBondRatingBonus(type: string | undefined | null, grade: string | null): number {
   if (!type || type === '없음' || !grade) return 0;
   
-  if (type === '회사채') {
-    if (grade === 'A이상' || grade === 'AAA' || grade === 'AA+' || grade === 'AA0' || grade === 'AA-' || grade === 'A+' || grade === 'A0') return 4;
-    if (grade === 'A-' || grade === 'BBB+') return 2;
+  const g = grade.toUpperCase().replace(/\s/g, '');
+
+  if (type.includes('회사채')) {
+    if (g.includes('AAA') || g.includes('AA') || g.includes('A+') || g.includes('A0') || g === 'A' || g.includes('A이상')) return 4;
+    if (g.includes('A-') || g.includes('BBB+')) return 2;
     return 0;
   }
   
-  if (type === '기업어음') {
-    if (grade === 'A2이상' || grade === 'A20') return 4;
-    if (grade === 'A2-' || grade === 'A3+') return 2;
+  if (type.includes('어음')) {
+    if (g.includes('A1') || g.includes('A2+') || g.includes('A20') || g === 'A2' || g.includes('A2이상')) return 4;
+    if (g.includes('A2-') || g.includes('A3+')) return 2;
     return 0;
   }
   
   return 0;
 }
 
+// 👇 CS 지수 로직 강화
 export function csIndexToScore(index: number | null): number {
   if (index === null) return 0;
   if (index >= 80) return 4;
   if (index >= 75) return 3; 
-  return 2;
+  if (index > 0) return 2; 
+  return 0;
 }
 
+// 👇 동반성장지수 텍스트 인식 로직 강화
 export function mutualGrowthToScore(rating: string): number {
-  switch (rating) {
-    case '최우수': return 4;
-    case '우수': return 2;
-    case '양호': return 1;
-    case '개선': return 0;
-    default: return 0;
-  }
+  if (rating.includes('최우수')) return 4;
+  if (rating.includes('우수')) return 2;
+  if (rating.includes('양호')) return 1;
+  if (rating.includes('개선')) return 0;
+  return 0;
 }
 
 export function safetyActivityToDeduction(score: number | null): number {
@@ -141,12 +141,12 @@ export function penaltyToDeduction(penalty: number): number {
   return -12.0;
 }
 
-export function qualityDefectToDeduction(noticeScore: number): number {
-  return -noticeScore;
+export function qualityDefectToDeduction(noticeCount: number): number {
+  return -(noticeCount * 4);
 }
 
-export function qualityExcellentToBonus(noticeScore: number): number {
-  return Math.min(noticeScore, 6);
+export function qualityExcellentToBonus(noticeCount: number): number {
+  return Math.min(noticeCount * 2, 6);
 }
 
 export function calcPerformanceScore(
@@ -192,7 +192,6 @@ export function calcLhTechScore(count: number): number {
 
 export function calcNewCompanyScore(members: ConsortiumMember[]): number {
   const rawScore = members.reduce((sum, m) => {
-    // 🚨 신규 업체가 아니거나, 지분율이 10% 미만이면 가점 부여하지 않음
     if (!m.isNewCompany || m.equityShare < 10) return sum;
     return sum + (m.isMainContractor ? 4 : 1);
   }, 0);
@@ -273,7 +272,10 @@ export function calculateScores(
     return sum + deduction * (m.equityShare / 100);
   }, 0);
 
-  const smeParticipation = calcSmeParticipationScore(consortium.smeParticipationBudget);
+  const projectBaseBudget = parseInt(project.budget.replace(/,/g, '').match(/\d+/)?.[0] || '0', 10);
+  const smeEquityTotal = members.filter((m) => m.isSME).reduce((sum, m) => sum + m.equityShare, 0);
+  const autoSmeBudget = projectBaseBudget * (smeEquityTotal / 100);
+  const smeParticipation = calcSmeParticipationScore(autoSmeBudget);
 
   const lhSpecialTech = calcLhTechScore(consortium.lhSpecialTechCount);
 
@@ -305,7 +307,7 @@ export function calculateScores(
 
   const qualityDefect = members.reduce((sum, m) => {
     if (m.qualityDefectNoticeScore === 0) return sum;
-    const deduction = -m.qualityDefectNoticeScore; 
+    const deduction = qualityDefectToDeduction(m.qualityDefectNoticeScore); 
     return sum + deduction * (m.equityShare / 100);
   }, 0);
 
@@ -376,4 +378,14 @@ export function fmt(n: number, decimals = 2): string {
 export function fmtDiff(n: number, decimals = 2): string {
   if (typeof n !== 'number' || isNaN(n)) return '0.00';
   return (n >= 0 ? '+' : '') + n.toFixed(decimals);
+}
+
+export function getConsortiumName(consortium: ConsortiumConfig): string {
+  const main = consortium.members.find((m) => m.isMainContractor);
+  return main && main.name ? `${main.name} 컨소시엄` : 'oo건설 컨소시엄';
+}
+
+export function getShortName(consortium: ConsortiumConfig): string {
+  const main = consortium.members.find((m) => m.isMainContractor);
+  return main && main.name ? main.name : 'oo건설';
 }

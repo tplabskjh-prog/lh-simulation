@@ -1,3 +1,4 @@
+// src/app/components/SummaryCards.tsx
 import type { ScoreResult } from '../types/simulation';
 import type { ProjectConfig } from '../types/simulation';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
@@ -6,6 +7,10 @@ interface Props {
   gsScore: ScoreResult;
   dlScore: ScoreResult;
   project: ProjectConfig;
+  gsName: string;
+  dlName: string;
+  gsShortName: string;
+  dlShortName: string;
 }
 
 function ScoreGauge({ value, max, color }: { value: number; max: number; color: string }) {
@@ -53,7 +58,6 @@ function ConsortiumCard({
         <span className="text-white" style={{ fontWeight: 700, fontSize: '0.85rem' }}>{name}</span>
       </div>
 
-      {/* 계량+가감점 */}
       <div className="mb-3">
         <div className="flex justify-between mb-1">
           <span className="text-slate-400" style={{ fontSize: '0.65rem' }}>계량+가감점</span>
@@ -64,7 +68,6 @@ function ConsortiumCard({
         <ScoreGauge value={score.combinedTotal} max={260} color={color} />
       </div>
 
-      {/* Sub breakdown */}
       <div className="grid grid-cols-2 gap-2 mb-3">
         <div className="rounded-lg p-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
           <div className="text-slate-400" style={{ fontSize: '0.6rem' }}>계량 (200pt)</div>
@@ -85,7 +88,6 @@ function ConsortiumCard({
         </div>
       </div>
 
-      {/* 세부 가감점 항목 */}
       <div className="space-y-1">
         {[
           { label: '재무상태', val: score.quantitative.financialState, max: 70 },
@@ -108,7 +110,6 @@ function ConsortiumCard({
         ))}
       </div>
 
-      {/* 총점 */}
       <div className="mt-3 pt-3 border-t" style={{ borderColor }}>
         <div className="flex justify-between items-center">
           <span className="text-slate-400" style={{ fontSize: '0.65rem' }}>최종 총점 (1000점)</span>
@@ -122,14 +123,13 @@ function ConsortiumCard({
   );
 }
 
-export function SummaryCards({ gsScore, dlScore, project }: Props) {
+export function SummaryCards({ gsScore, dlScore, project, gsName, dlName, gsShortName, dlShortName }: Props) {
   const diff = gsScore.combinedTotal - dlScore.combinedTotal;
   const gsWins = diff > 0.01;
   const dlWins = diff < -0.01;
 
   return (
     <div className="space-y-3">
-      {/* Project Info Banner */}
       <div className="bg-slate-800 rounded-xl border border-slate-700 px-4 py-3">
         <div className="flex items-center justify-between">
           <div>
@@ -150,10 +150,9 @@ export function SummaryCards({ gsScore, dlScore, project }: Props) {
         </div>
       </div>
 
-      {/* Consortium Cards */}
       <div className="flex gap-3">
         <ConsortiumCard
-          name="GS건설 컨소시엄"
+          name={gsName}
           score={gsScore}
           color="#60a5fa"
           bgColor="rgba(30,58,138,0.2)"
@@ -161,7 +160,7 @@ export function SummaryCards({ gsScore, dlScore, project }: Props) {
           isWinner={gsWins}
         />
         <ConsortiumCard
-          name="DL건설 컨소시엄"
+          name={dlName}
           score={dlScore}
           color="#fb923c"
           bgColor="rgba(124,45,18,0.2)"
@@ -170,7 +169,6 @@ export function SummaryCards({ gsScore, dlScore, project }: Props) {
         />
       </div>
 
-      {/* Gap Banner */}
       <div
         className={`rounded-xl border p-3 flex items-center justify-between ${
           Math.abs(diff) < 0.5
@@ -182,7 +180,7 @@ export function SummaryCards({ gsScore, dlScore, project }: Props) {
       >
         <div>
           <div className="text-slate-400" style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em' }}>
-            계량+가감점 격차 (GS - DL)
+            계량+가감점 격차 ({gsShortName} - {dlShortName})
           </div>
           <div
             className="font-mono"
@@ -199,12 +197,12 @@ export function SummaryCards({ gsScore, dlScore, project }: Props) {
           {gsWins ? (
             <div className="flex items-center gap-1">
               <TrendingUp className="text-blue-400" size={20} />
-              <span className="text-blue-400" style={{ fontSize: '0.75rem', fontWeight: 700 }}>GS 우위</span>
+              <span className="text-blue-400" style={{ fontSize: '0.75rem', fontWeight: 700 }}>{gsShortName} 우위</span>
             </div>
           ) : dlWins ? (
             <div className="flex items-center gap-1">
               <TrendingDown className="text-orange-400" size={20} />
-              <span className="text-orange-400" style={{ fontSize: '0.75rem', fontWeight: 700 }}>DL 우위</span>
+              <span className="text-orange-400" style={{ fontSize: '0.75rem', fontWeight: 700 }}>{dlShortName} 우위</span>
             </div>
           ) : (
             <div className="flex items-center gap-1">

@@ -5,6 +5,8 @@ import { fmt, fmtDiff } from '../utils/calculations';
 interface Props {
   gsScore: ScoreResult;
   dlScore: ScoreResult;
+  gsShortName: string;
+  dlShortName: string;
 }
 
 function DiffBadge({ val }: { val: number }) {
@@ -80,7 +82,7 @@ function ScoreRow({
   );
 }
 
-export function ScoreBreakdownTable({ gsScore, dlScore }: Props) {
+export function ScoreBreakdownTable({ gsScore, dlScore, gsShortName, dlShortName }: Props) {
   const { quantitative: gsQ, adjustment: gsA } = gsScore;
   const { quantitative: dlQ, adjustment: dlA } = dlScore;
 
@@ -101,13 +103,13 @@ export function ScoreBreakdownTable({ gsScore, dlScore }: Props) {
             <tr className="bg-slate-900 border-b border-slate-700" style={{ fontSize: '0.68rem' }}>
               <th className="px-3 py-2 text-left text-slate-400 font-semibold w-48">구분</th>
               <th className="px-3 py-2 text-center text-slate-400 font-semibold w-16">배점</th>
-              <th className="px-3 py-2 text-right text-blue-400 font-semibold w-24">GS컨소</th>
-              <th className="px-3 py-2 text-right text-orange-400 font-semibold w-24">DL컨소</th>
-              <th className="px-3 py-2 text-right text-slate-400 font-semibold w-20">GS-DL</th>
+              {/* 👇 동적 이름 반영 */}
+              <th className="px-3 py-2 text-right text-blue-400 font-semibold w-24">{gsShortName}</th>
+              <th className="px-3 py-2 text-right text-orange-400 font-semibold w-24">{dlShortName}</th>
+              <th className="px-3 py-2 text-right text-slate-400 font-semibold w-20">{gsShortName}-{dlShortName}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-700/50">
-            {/* 계량평가 헤더 */}
             <ScoreRow label="■ 계량 평가" isHeader gs={0} dl={0} />
 
             <ScoreRow label="재무상태" maxScore="70" gs={gsQ.financialState} dl={dlQ.financialState} indent />
@@ -118,10 +120,8 @@ export function ScoreBreakdownTable({ gsScore, dlScore }: Props) {
 
             <ScoreRow label="계량 소계" gs={gsScore.quantitativeTotal} dl={dlScore.quantitativeTotal} isSubtotal highlight="blue" />
 
-            {/* 가감점 헤더 */}
             <ScoreRow label="■ 가감점" isHeader gs={0} dl={0} />
 
-            {/* 순서 수정된 가감점 항목들 */}
             <ScoreRow label="사고사망만인율" maxScore="-12*" gs={gsA.accidentDeath} dl={dlA.accidentDeath} indent />
             <ScoreRow label="산업재해 예방활동 실적" maxScore="-2" gs={gsA.safetyActivity} dl={dlA.safetyActivity} indent />
             <ScoreRow label="산업안전보건관리비 사용의무 위반" maxScore="-1" gs={gsA.safetyMgmtViolation} dl={dlA.safetyMgmtViolation} indent />
@@ -148,10 +148,8 @@ export function ScoreBreakdownTable({ gsScore, dlScore }: Props) {
 
             <ScoreRow label="가감점 소계" gs={gsScore.adjustmentTotal} dl={dlScore.adjustmentTotal} isSubtotal highlight="orange" />
 
-            {/* 최종 합계 */}
             <ScoreRow label="■ 계량+가감점 합계" gs={gsScore.combinedTotal} dl={dlScore.combinedTotal} isSubtotal highlight="green" />
 
-            {/* 비계량 / 가격 */}
             <ScoreRow label="비계량 (더미입력)" maxScore="600" gs={gsScore.nonQuantitative} dl={dlScore.nonQuantitative} indent />
             <ScoreRow label="가격평가 (더미입력)" maxScore="200" gs={gsScore.priceEvaluation} dl={dlScore.priceEvaluation} indent />
 

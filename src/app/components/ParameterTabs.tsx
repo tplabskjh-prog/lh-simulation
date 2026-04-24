@@ -2,8 +2,9 @@
 import { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { useSimStore } from '../store/simulationStore';
-import type { ConsortiumConfig, ConsortiumMember, CreditGrade, ProjectConfig } from '../types/simulation';
-import { RotateCcw, Users, Calculator, TrendingDown, Info, ChevronLeft, Upload, FileText } from 'lucide-react';
+import type { ConsortiumConfig, ConsortiumMember, CreditGrade, ProjectConfig, PhaseConfig } from '../types/simulation';
+import { getConsortiumName, getShortName } from '../utils/calculations';
+import { RotateCcw, RefreshCw, Users, Calculator, TrendingDown, Info, ChevronLeft, Upload, FileText } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
 
@@ -18,13 +19,19 @@ const MUTUAL_GROWTH_OPTIONS = ['최우수', '우수', '양호', '개선', '해�
 // ── 공통 입력 컴포넌트들 ─────────────────────────────────────────────────────
 
 function TextInput({
-  label, value, onChange
+  label, 
+  value, 
+  onChange
 }: {
-  label: string; value: string; onChange: (v: string) => void;
+  label: string; 
+  value: string; 
+  onChange: (v: string) => void;
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="text-slate-400 whitespace-nowrap" style={{ fontSize: '0.72rem' }}>{label}</span>
+      <span className="text-slate-400 whitespace-nowrap" style={{ fontSize: '0.72rem' }}>
+        {label}
+      </span>
       <input
         type="text"
         value={value}
@@ -37,18 +44,33 @@ function TextInput({
 }
 
 function NumberInput({
-  label, value, min, max, step = 0.1, onChange, unit = '',
+  label, 
+  value, 
+  min, 
+  max, 
+  step = 0.1, 
+  onChange, 
+  unit = '',
 }: {
-  label: string; value: number; min: number; max: number; step?: number;
-  onChange: (v: number) => void; unit?: string;
+  label: string; 
+  value: number; 
+  min: number; 
+  max: number; 
+  step?: number;
+  onChange: (v: number) => void; 
+  unit?: string;
 }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <span className="text-slate-400 whitespace-nowrap" style={{ fontSize: '0.72rem' }}>{label}</span>
+      <span className="text-slate-400 whitespace-nowrap" style={{ fontSize: '0.72rem' }}>
+        {label}
+      </span>
       <div className="flex items-center gap-1">
         <input
           type="number"
-          min={min} max={max} step={step}
+          min={min} 
+          max={max} 
+          step={step}
           value={value}
           onChange={(e) => {
             const val = parseFloat(e.target.value);
@@ -57,21 +79,32 @@ function NumberInput({
           className="bg-slate-700 border border-slate-600 rounded px-2 py-0.5 text-slate-200 font-mono text-right w-20"
           style={{ fontSize: '0.72rem' }}
         />
-        {unit && <span className="text-slate-500 whitespace-nowrap" style={{ fontSize: '0.68rem' }}>{unit}</span>}
+        {unit && (
+          <span className="text-slate-500 whitespace-nowrap" style={{ fontSize: '0.68rem' }}>
+            {unit}
+          </span>
+        )}
       </div>
     </div>
   );
 }
 
 function SelectInput({
-  label, value, options, onChange,
+  label, 
+  value, 
+  options, 
+  onChange,
 }: {
-  label: string; value: string; options: string[];
+  label: string; 
+  value: string; 
+  options: string[];
   onChange: (v: string) => void;
 }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <span className="text-slate-400 whitespace-nowrap" style={{ fontSize: '0.72rem' }}>{label}</span>
+      <span className="text-slate-400 whitespace-nowrap" style={{ fontSize: '0.72rem' }}>
+        {label}
+      </span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -181,53 +214,165 @@ function CompanyCombobox({
   );
 }
 
-// ── 사업개요 패널 (신규 추가) ──────────────────────────────────────────
+// ── 사업개요 패널 ──────────────────────────────────────────
 function OverviewPanel({
   projects,
   selectedProjectId,
   setSelectedProject,
-  updateProjectDetail
+  updateProjectDetail,
+  phases,
+  selectedPhaseId,
+  updatePhaseName
 }: {
   projects: ProjectConfig[];
   selectedProjectId: string;
   setSelectedProject: (id: string) => void;
   updateProjectDetail: (patch: Partial<ProjectConfig>) => void;
+  phases: PhaseConfig[];
+  selectedPhaseId: string;
+  updatePhaseName: (id: string, name: string) => void;
 }) {
-  const project = projects.find(p => p.id === selectedProjectId) || projects[0];
+  const [hiddenBlocks, setHiddenBlocks] = useState<Set<string>>(new Set());
+
+  const toggleHide = (id: string) => {
+    setHiddenBlocks(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleChange = (id: string, patch: Partial<ProjectConfig>) => {
+    if (selectedProjectId !== id) {
+      setSelectedProject(id);
+      setTimeout(() => updateProjectDetail(patch), 10);
+    } else {
+      updateProjectDetail(patch);
+    }
+  };
+
+  const phaseProjects = projects.filter(p => p.phaseId === selectedPhaseId);
 
   return (
     <div className="space-y-4">
-      <div className="bg-slate-750 rounded-lg p-3" style={{ background: 'rgba(51,65,85,0.5)' }}>
+      {/* 회차명 설정 패널 */}
+      <div className="bg-slate-750 rounded-lg p-3 shadow-sm" style={{ background: 'rgba(51,65,85,0.5)' }}>
         <h5 style={{ color: '#e2e8f0', fontSize: '0.8rem', fontWeight: 700 }} className="mb-3">
-          프로젝트 선택
+          공모 회차명 설정
         </h5>
-        <select
-          value={selectedProjectId}
-          onChange={(e) => setSelectedProject(e.target.value)}
-          className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-white font-semibold shadow-sm focus:border-blue-500 outline-none"
-          style={{ fontSize: '0.8rem' }}
-        >
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={phases.find(p => p.id === selectedPhaseId)?.name || ''}
+            onChange={(e) => updatePhaseName(selectedPhaseId, e.target.value)}
+            className="flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-white font-semibold shadow-sm focus:border-blue-500 outline-none"
+            style={{ fontSize: '0.8rem' }}
+            placeholder="예: 1-1차"
+          />
+          <span className="text-slate-400 whitespace-nowrap" style={{ fontSize: '0.72rem' }}>
+            민간참여 공공주택건설사업
+          </span>
+        </div>
       </div>
 
-      <div className="bg-slate-750 rounded-lg p-3" style={{ background: 'rgba(51,65,85,0.5)' }}>
-        <h5 style={{ color: '#e2e8f0', fontSize: '0.8rem', fontWeight: 700 }} className="mb-3">
-          사업개요 작성/수정
-        </h5>
-        <div className="space-y-2">
-          <TextInput label="공모명" value={project.name} onChange={(v) => updateProjectDetail({ name: v })} />
-          <TextInput label="사업유형" value={project.type} onChange={(v) => updateProjectDetail({ type: v })} />
-          <NumberInput label="세대수" value={project.units} min={0} max={20000} step={1} onChange={(v) => updateProjectDetail({ units: v })} unit="세대" />
-          <TextInput label="추정사업비" value={project.budget} onChange={(v) => updateProjectDetail({ budget: v })} />
-          <TextInput label="대지면적" value={project.area} onChange={(v) => updateProjectDetail({ area: v })} />
-          <TextInput label="준공예정일" value={project.completionDate} onChange={(v) => updateProjectDetail({ completionDate: v })} />
-        </div>
-        <p className="text-slate-500 mt-3" style={{ fontSize: '0.65rem', lineHeight: '1.4' }}>
-          ※ 추정사업비의 숫자를 수정하면, 가격평가의 <b>'공고 기준 사업비'</b>에도 연동되어 자동 반영됩니다.
-        </p>
+      {/* 개별 블록들 나열 */}
+      <div className="space-y-3">
+        {phaseProjects.map((project, idx) => {
+          const isSelected = selectedProjectId === project.id;
+          const isHidden = hiddenBlocks.has(project.id);
+          
+          return (
+            <div 
+              key={project.id} 
+              className={`rounded-lg p-3 transition-all duration-300 border ${
+                isSelected && !isHidden 
+                  ? 'bg-slate-700 border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.15)]' 
+                  : 'bg-slate-800 border-slate-700'
+              }`}
+              style={{ opacity: isHidden ? 0.6 : 1 }}
+            >
+              {/* 블록 헤더 */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <h5 style={{ color: isSelected ? '#60a5fa' : '#e2e8f0', fontSize: '0.85rem', fontWeight: 700 }}>
+                    {project.name || `블록 ${idx + 1}`}
+                  </h5>
+                  {isSelected && !isHidden && (
+                    <span className="px-1.5 py-0.5 rounded text-xs bg-blue-900 text-blue-300" style={{ fontSize: '0.6rem', fontWeight: 700 }}>
+                      시뮬레이션 대상
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {!isSelected && !isHidden && (
+                    <button
+                      onClick={() => setSelectedProject(project.id)}
+                      className="text-slate-400 hover:text-blue-400 transition-colors"
+                      style={{ fontSize: '0.65rem', fontWeight: 600 }}
+                    >
+                      선택
+                    </button>
+                  )}
+                  <button
+                    onClick={() => toggleHide(project.id)}
+                    className="text-slate-500 hover:text-slate-300 px-2 py-0.5 rounded bg-slate-750 border border-slate-600 transition-colors"
+                    style={{ fontSize: '0.65rem' }}
+                  >
+                    {isHidden ? '펼치기' : '숨기기'}
+                  </button>
+                </div>
+              </div>
+
+              {/* 블록 입력 폼 */}
+              {!isHidden && (
+                <div className="space-y-2">
+                  <TextInput 
+                    label="공모명 (블록)" 
+                    value={project.name} 
+                    onChange={(v) => handleChange(project.id, { name: v })} 
+                  />
+                  <TextInput 
+                    label="사업유형" 
+                    value={project.type} 
+                    onChange={(v) => handleChange(project.id, { type: v })} 
+                  />
+                  <NumberInput 
+                    label="세대수" 
+                    value={project.units} 
+                    min={0} max={20000} step={1} 
+                    onChange={(v) => handleChange(project.id, { units: v })} 
+                    unit="세대" 
+                  />
+                  <TextInput 
+                    label="추정사업비" 
+                    value={project.budget} 
+                    onChange={(v) => handleChange(project.id, { budget: v })} 
+                  />
+                  <TextInput 
+                    label="대지면적" 
+                    value={project.area} 
+                    onChange={(v) => handleChange(project.id, { area: v })} 
+                  />
+                  <TextInput 
+                    label="준공예정일" 
+                    value={project.completionDate} 
+                    onChange={(v) => handleChange(project.id, { completionDate: v })} 
+                  />
+                  
+                  {isSelected && (
+                    <p className="text-slate-500 mt-3 pt-2 border-t border-slate-600" style={{ fontSize: '0.65rem', lineHeight: '1.4' }}>
+                      ※ 이 블록의 추정사업비를 수정하면, 우측 가격평가의 <b>'공고 기준 사업비'</b>에도 연동되어 자동 반영됩니다.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -257,7 +402,9 @@ function EquityPanel({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h4 style={{ color, fontWeight: 700, fontSize: '0.85rem' }}>{consortium.name}</h4>
+        <h4 style={{ color, fontWeight: 700, fontSize: '0.85rem' }}>
+          {getConsortiumName(consortium)}
+        </h4>
         <span
           className={`px-2 py-0.5 rounded text-xs ${isValid ? 'bg-emerald-900 text-emerald-300' : 'bg-red-900 text-red-300'}`}
           style={{ fontSize: '0.65rem', fontWeight: 700 }}
@@ -267,10 +414,15 @@ function EquityPanel({
       </div>
 
       {consortium.members.map((m) => (
-        <div key={m.id} className={`rounded-lg p-3 ${!m.name ? 'border border-slate-700/50 opacity-60' : 'bg-slate-750'}`} style={{ background: m.name ? 'rgba(51,65,85,0.5)' : 'transparent' }}>
-          
+        <div 
+          key={m.id} 
+          className={`rounded-lg p-3 ${!m.name ? 'border border-slate-700/50 opacity-60' : 'bg-slate-750'}`} 
+          style={{ background: m.name ? 'rgba(51,65,85,0.5)' : 'transparent' }}
+        >
           <div className="flex flex-col mb-3 gap-1">
-            <span className="text-slate-400" style={{ fontSize: '0.65rem' }}>업체 선택 (검색 가능)</span>
+            <span className="text-slate-400" style={{ fontSize: '0.65rem' }}>
+              업체 선택 (검색 가능)
+            </span>
             <CompanyCombobox
               value={m.name}
               options={
@@ -280,7 +432,6 @@ function EquityPanel({
               }
               onChange={(val) => {
                 if (val === '') {
-                  // 공란 선택 시 해당 칸 데이터 초기화
                   updateMember(m.id, {
                     name: '',
                     isSME: false,
@@ -312,16 +463,36 @@ function EquityPanel({
             />
           </div>
 
-          <div className="flex items-center gap-2 mb-2 min-h[1.5rem]">
-            {m.isMainContractor && (
-              <span className="px-1.5 py-0.5 rounded text-xs" style={{ background: color + '20', color, fontSize: '0.6rem', fontWeight: 700 }}>주관사</span>
-            )}
-            {m.isSME && (
-              <span className="px-1.5 py-0.5 rounded" style={{ background: '#059669' + '20', color: '#34d399', fontSize: '0.6rem', fontWeight: 700 }}>중소기업</span>
-            )}
-            {m.isNewCompany && (
-              <span className="px-1.5 py-0.5 rounded" style={{ background: '#7c3aed' + '20', color: '#a78bfa', fontSize: '0.6rem', fontWeight: 700 }}>신규</span>
-            )}
+          <div className="flex items-center gap-3 mb-2 min-h-[1.5rem]">
+            {m.isMainContractor ? (
+              <span className="px-1.5 py-0.5 rounded text-xs" style={{ background: color + '20', color, fontSize: '0.6rem', fontWeight: 700 }}>
+                주관사
+              </span>
+            ) : <span className="w-9"></span>}
+
+            <label className={`flex items-center gap-1 cursor-pointer transition-opacity ${!m.name ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+              <input
+                type="checkbox"
+                checked={m.isSME}
+                onChange={(e) => updateMember(m.id, { isSME: e.target.checked })}
+                style={{ accentColor: '#10b981' }}
+              />
+              <span className={m.isSME ? 'text-emerald-400' : 'text-slate-500'} style={{ fontSize: '0.65rem', fontWeight: 700 }}>
+                중소기업
+              </span>
+            </label>
+
+            <label className={`flex items-center gap-1 cursor-pointer transition-opacity ${!m.name ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+              <input
+                type="checkbox"
+                checked={m.isNewCompany}
+                onChange={(e) => updateMember(m.id, { isNewCompany: e.target.checked })}
+                style={{ accentColor: '#8b5cf6' }}
+              />
+              <span className={m.isNewCompany ? 'text-violet-400' : 'text-slate-500'} style={{ fontSize: '0.65rem', fontWeight: 700 }}>
+                신규업체
+              </span>
+            </label>
           </div>
           <div className="flex justify-between items-center mt-2 border-t border-slate-700 pt-2">
             <span className="text-slate-400" style={{ fontSize: '0.7rem' }}>지분율 입력</span>
@@ -386,7 +557,6 @@ function QuantitativePanel({
   color: string;
 }) {
 
-  // 👇 파일 업로드 및 데이터 연동 핸들러
   const handleFinancialCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -395,12 +565,15 @@ function QuantitativePanel({
       const data = await parseFinancialCSV(file);
       applyFinancials(data.gs, data.dl);
       alert('재무상태 총괄 데이터가 성공적으로 연동되었습니다!\n(GS건설 및 DL건설 양쪽 컨소시엄 모두 적용됨)');
-      e.target.value = ''; // 재업로드를 위한 초기화
+      e.target.value = '';
     } catch (error) {
       console.error(error);
       alert('CSV 파일을 읽어오는 중 오류가 발생했습니다.');
     }
   };
+
+  const gsShortName = getShortName(gsConsortium);
+  const dlShortName = getShortName(dlConsortium);
 
   return (
     <div className="space-y-4">
@@ -530,8 +703,8 @@ function QuantitativePanel({
                   style={{ fontSize: '0.72rem' }}
                 >
                   <option value="tie">무승부 (동점)</option>
-                  <option value="gs">GS건설 우위</option>
-                  <option value="dl">DL건설 우위</option>
+                  <option value="gs">{gsShortName} 우위</option>
+                  <option value="dl">{dlShortName} 우위</option>
                 </select>
                 
                 {nonQuantJudgeDiff !== 0 && (
@@ -558,13 +731,13 @@ function QuantitativePanel({
           </div>
 
           <div className="flex justify-between border-t border-slate-600 pt-3 mt-2 px-1" style={{ fontSize: '0.8rem', fontWeight: 700 }}>
-            <span className="text-blue-400">GS건설: {gsConsortium.nonQuantitativeScore}점</span>
-            <span className="text-orange-400">DL건설: {dlConsortium.nonQuantitativeScore}점</span>
+            <span className="text-blue-400">{gsShortName}: {gsConsortium.nonQuantitativeScore}점</span>
+            <span className="text-orange-400">{dlShortName}: {dlConsortium.nonQuantitativeScore}점</span>
           </div>
         </div>
       </div>
 
-      {/* 👇 가격평가 (퍼센트 입력 및 금액 자동 표시) */}
+      {/* 가격평가 */}
       <div className="bg-slate-750 rounded-lg p-3" style={{ background: 'rgba(51,65,85,0.5)' }}>
         <div className="flex flex-col mb-3">
           <div className="flex items-start gap-2">
@@ -584,7 +757,7 @@ function QuantitativePanel({
           <div className="bg-slate-800 p-3 rounded-lg border border-slate-700 shadow-inner flex gap-3">
             {/* GS건설 */}
             <div className="flex-1 space-y-2">
-              <span className="text-blue-400 font-semibold" style={{fontSize:'0.72rem'}}>GS건설 제안율</span>
+              <span className="text-blue-400 font-semibold" style={{fontSize:'0.72rem'}}>{gsShortName} 제안율</span>
               <NumberInput
                 label="비율"
                 value={gsProposedBudgetRate}
@@ -602,7 +775,7 @@ function QuantitativePanel({
 
             {/* DL건설 */}
             <div className="flex-1 space-y-2">
-              <span className="text-orange-400 font-semibold" style={{fontSize:'0.72rem'}}>DL건설 제안율</span>
+              <span className="text-orange-400 font-semibold" style={{fontSize:'0.72rem'}}>{dlShortName} 제안율</span>
               <NumberInput
                 label="비율"
                 value={dlProposedBudgetRate}
@@ -629,15 +802,21 @@ function QuantitativePanel({
 // ── 가감점 패널 ─────────────────────────────────────────────────
 function AdjustmentPanel({
   consortium,
+  projectBaseBudget,
   updateMember,
   updateConsortium,
   color,
 }: {
   consortium: ConsortiumConfig;
+  projectBaseBudget: number;
   updateMember: (id: string, patch: Partial<ConsortiumMember>) => void;
   updateConsortium: (patch: Partial<Omit<ConsortiumConfig, 'members' | 'financials'>>) => void;
   color: string;
 }) {
+
+  const smeEquityTotal = consortium.members.filter(m => m.isSME).reduce((sum, m) => sum + m.equityShare, 0);
+  const autoSmeBudget = projectBaseBudget * (smeEquityTotal / 100);
+
   return (
     <div className="space-y-4">
       {/* 1. 사고사망만인율 */}
@@ -763,13 +942,16 @@ function AdjustmentPanel({
           가점 항목 (공통 및 주관사)
         </h5>
         <div className="space-y-2">
-          <NumberInput
-            label="중소기업 참여비율"
-            value={consortium.smeParticipationBudget}
-            min={0} max={1000} step={10}
-            onChange={(v) => updateConsortium({ smeParticipationBudget: v })}
-            unit="억원"
-          />
+          <div className="flex items-center justify-between gap-2 border border-slate-700 bg-slate-800 rounded px-2 py-1.5">
+            <div className="flex items-center gap-2">
+               <span className="text-slate-400 whitespace-nowrap" style={{ fontSize: '0.72rem' }}>중소기업 참여금액</span>
+               <span className="text-slate-500" style={{ fontSize: '0.6rem' }}>(업체선택 탭 연동)</span>
+            </div>
+            <div className="text-emerald-400 font-mono" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+              {Math.round(autoSmeBudget).toLocaleString()} 억원
+            </div>
+          </div>
+
           <NumberInput
             label="LH 인정 특화기술"
             value={consortium.lhSpecialTechCount}
@@ -780,8 +962,12 @@ function AdjustmentPanel({
           
           {consortium.members.filter((m) => m.isMainContractor && m.name).map((m) => (
             <div key={m.id} className="space-y-2 pt-2 mt-2 border-t border-slate-600">
+              
+              {/* 👇 직접 입력 가능하도록 복구된 텍스트박스 영역 */}
               <div className="flex items-center justify-between gap-2">
-                <span className="text-slate-400 whitespace-nowrap" style={{ fontSize: '0.72rem' }}>국가고객만족지수</span>
+                <div className="flex items-center gap-2">
+                   <span className="text-slate-400 whitespace-nowrap" style={{ fontSize: '0.72rem' }}>국가고객만족지수</span>
+                </div>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
@@ -804,8 +990,11 @@ function AdjustmentPanel({
                 </div>
               </div>
               
+              {/* 👇 회사채/CP 등급 - 원본 데이터 보존 옵션 추가 */}
               <div className="flex items-center justify-between gap-2">
-                <span className="text-slate-400 whitespace-nowrap" style={{ fontSize: '0.72rem' }}>회사채/CP 등급</span>
+                <div className="flex items-center gap-2">
+                   <span className="text-slate-400 whitespace-nowrap" style={{ fontSize: '0.72rem' }}>회사채/CP 등급</span>
+                </div>
                 <div className="flex gap-1">
                   <select
                     value={m.bondTypeForBonus ?? '없음'}
@@ -833,6 +1022,10 @@ function AdjustmentPanel({
                           <option value="A이상">A이상</option>
                           <option value="A-">A-</option>
                           <option value="BBB+">BBB+</option>
+                          {/* 엑셀에서 가져온 원래 등급(예: AAA)이 선택지에 없으면 추가해서 띄워줍니다 */}
+                          {!['A이상', 'A-', 'BBB+', '기타'].includes(m.bondRatingForBonus || '') && m.bondRatingForBonus ? (
+                            <option value={m.bondRatingForBonus}>{m.bondRatingForBonus}</option>
+                          ) : null}
                           <option value="기타">기타</option>
                         </>
                       ) : (
@@ -840,6 +1033,10 @@ function AdjustmentPanel({
                           <option value="A2이상">A2이상</option>
                           <option value="A2-">A2-</option>
                           <option value="A3+">A3+</option>
+                          {/* 엑셀에서 가져온 원래 등급(예: A1, A20)이 선택지에 없으면 추가해서 띄워줍니다 */}
+                          {!['A2이상', 'A2-', 'A3+', '기타'].includes(m.bondRatingForBonus || '') && m.bondRatingForBonus ? (
+                            <option value={m.bondRatingForBonus}>{m.bondRatingForBonus}</option>
+                          ) : null}
                           <option value="기타">기타</option>
                         </>
                       )}
@@ -848,12 +1045,26 @@ function AdjustmentPanel({
                 </div>
               </div>
 
-              <SelectInput
-                label="동반성장지수"
-                value={m.mutualGrowthRating}
-                options={MUTUAL_GROWTH_OPTIONS}
-                onChange={(v) => updateMember(m.id, { mutualGrowthRating: v as any })}
-              />
+              {/* 👇 동반성장지수 - 원본 데이터 보존 옵션 추가 */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                   <span className="text-slate-400 whitespace-nowrap" style={{ fontSize: '0.72rem' }}>동반성장지수</span>
+                </div>
+                <select
+                  value={m.mutualGrowthRating}
+                  onChange={(e) => updateMember(m.id, { mutualGrowthRating: e.target.value as any })}
+                  className="bg-slate-700 border border-slate-600 rounded px-2 py-0.5 text-slate-200 text-right"
+                  style={{ fontSize: '0.72rem' }}
+                >
+                  {MUTUAL_GROWTH_OPTIONS.map((o) => (
+                    <option key={o} value={o}>{o}</option>
+                  ))}
+                  {!MUTUAL_GROWTH_OPTIONS.includes(m.mutualGrowthRating) && m.mutualGrowthRating ? (
+                    <option value={m.mutualGrowthRating}>{m.mutualGrowthRating}</option>
+                  ) : null}
+                </select>
+              </div>
+
             </div>
           ))}
         </div>
@@ -868,17 +1079,20 @@ function AdjustmentPanel({
         <div className="space-y-4">
           {/* 12. 신규업체 */}
           <div>
-            <p className="text-slate-400 mb-2" style={{ fontSize: '0.72rem' }}>신규업체 참여가점</p>
+            <div className="flex items-center gap-2 mb-2">
+               <p className="text-slate-400" style={{ fontSize: '0.72rem' }}>신규업체 참여가점</p>
+               <span className="text-slate-500" style={{ fontSize: '0.6rem' }}>(업체선택 탭 연동)</span>
+            </div>
             <div className="flex flex-wrap gap-2">
               {consortium.members.map((m) => m.name ? (
-                <label key={m.id} className="flex items-center gap-1 cursor-pointer bg-slate-800 px-2 py-1 rounded border border-slate-700">
+                <label key={m.id} className={`flex items-center gap-1 cursor-pointer bg-slate-800 px-2 py-1 rounded border ${m.isNewCompany ? 'border-violet-500 bg-violet-900/20' : 'border-slate-700'}`}>
                   <input
                     type="checkbox"
                     checked={m.isNewCompany}
                     onChange={(e) => updateMember(m.id, { isNewCompany: e.target.checked })}
                     style={{ accentColor: color }}
                   />
-                  <span className="text-slate-300" style={{ fontSize: '0.65rem' }}>{m.name}</span>
+                  <span className={m.isNewCompany ? 'text-violet-300' : 'text-slate-400'} style={{ fontSize: '0.65rem' }}>{m.name}</span>
                 </label>
               ) : null)}
             </div>
@@ -974,22 +1188,22 @@ function AdjustmentPanel({
               </p>
               <div className="space-y-2">
                 <NumberInput
-                  label="미흡통지서(점)"
+                  label="미흡통지서(건)"
                   value={m.qualityDefectNoticeScore}
-                  min={0} max={20} step={4}
+                  min={0} max={10} step={1}
                   onChange={(v) => updateMember(m.id, { qualityDefectNoticeScore: v })}
-                  unit=""
+                  unit="건"
                 />
                 <NumberInput
-                  label="우수통지서(점)"
+                  label="우수통지서(건)"
                   value={m.qualityExcellentNoticeScore}
-                  min={0} max={6} step={2}
+                  min={0} max={10} step={1}
                   onChange={(v) => updateMember(m.id, { qualityExcellentNoticeScore: v })}
-                  unit=""
+                  unit="건"
                 />
               </div>
               <p className="text-slate-600 mt-2" style={{ fontSize: '0.6rem' }}>
-                미흡: 1회=4점. 우수: 1회=2점, 2회=4점, 3회=6점(max)
+                미흡: 1건=4점 감점. 우수: 1건=2점, 2건=4점, 3건=6점(max) 가점
               </p>
             </div>
           ) : null)}
@@ -1019,21 +1233,44 @@ function AdjustmentPanel({
 }
 
 // ── 메인 파라미터 탭 컴포넌트 ────────────────────────────────────────────────
-type TabId = 'overview' | 'equity' | 'quant' | 'adjust'; // 👇 overview 탭 추가됨
+type TabId = 'overview' | 'equity' | 'quant' | 'adjust'; 
 
 export function ParameterTabs({ onClose }: { onClose?: () => void }) {
-  const [activeTab, setActiveTab] = useState<TabId>('overview'); // 👇 기본 탭을 사업개요로 설정
+  const [activeTab, setActiveTab] = useState<TabId>('overview'); 
   const [activeConsortium, setActiveConsortium] = useState<'gs' | 'dl'>('gs');
 
   const {
-    projects, selectedProjectId, setSelectedProject, updateProjectDetail, // 👇 사업개요 관련 연동
-    gsConsortium, dlConsortium,
-    companyDB, loadCompanyDB, applyCompanyData, 
-    updateGsFinancials, updateGsMember, updateGsConsortium, updateGsEquity,
-    updateDlFinancials, updateDlMember, updateDlConsortium, updateDlEquity,
-    applyFinancials,
-    nonQuantBaseScore, nonQuantJudgeDiff, updateNonQuant,
-    projectBaseBudget, gsProposedBudgetRate, dlProposedBudgetRate, gsProposedBudget, dlProposedBudget, updateProposedBudgetRate,
+    phases, 
+    selectedPhaseId, 
+    setSelectedPhase,
+    updatePhaseName, 
+    projects, 
+    selectedProjectId, 
+    setSelectedProject, 
+    updateProjectDetail, 
+    gsConsortium, 
+    dlConsortium, 
+    companyDB, 
+    loadCompanyDB, 
+    applyCompanyData, 
+    updateGsFinancials, 
+    updateGsMember, 
+    updateGsConsortium, 
+    updateGsEquity,
+    updateDlFinancials, 
+    updateDlMember, 
+    updateDlConsortium, 
+    updateDlEquity,
+    applyFinancials, 
+    nonQuantBaseScore, 
+    nonQuantJudgeDiff, 
+    updateNonQuant,
+    projectBaseBudget, 
+    gsProposedBudgetRate, 
+    dlProposedBudgetRate, 
+    gsProposedBudget, 
+    dlProposedBudget, 
+    updateProposedBudgetRate,
     resetToDefaults,
   } = useSimStore();
 
@@ -1044,8 +1281,8 @@ export function ParameterTabs({ onClose }: { onClose?: () => void }) {
   }, [companyDB.length, loadCompanyDB]);
 
   const tabs: { id: TabId; icon: ReactNode; label: string }[] = [
-    { id: 'overview', icon: <FileText size={14} />, label: '사업개요' }, // 👇 탭 버튼 추가
-    { id: 'equity', icon: <Users size={14} />, label: '업체선택' }, // 👇 라벨 이름 간소화
+    { id: 'overview', icon: <FileText size={14} />, label: '사업개요' }, 
+    { id: 'equity', icon: <Users size={14} />, label: '업체선택' }, 
     { id: 'quant', icon: <Calculator size={14} />, label: '계량평가' },
     { id: 'adjust', icon: <TrendingDown size={14} />, label: '가감점' },
   ];
@@ -1053,22 +1290,36 @@ export function ParameterTabs({ onClose }: { onClose?: () => void }) {
   const consortium = activeConsortium === 'gs' ? gsConsortium : dlConsortium;
   const color = activeConsortium === 'gs' ? '#60a5fa' : '#fb923c';
 
+  const gsName = getConsortiumName(gsConsortium);
+  const dlName = getConsortiumName(dlConsortium);
+
   return (
     <div className="bg-slate-800 rounded-xl border border-slate-700 flex flex-col h-full">
-      {/* Header */}
       <div className="px-4 py-3 border-b border-slate-700 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h3 className="text-white" style={{ fontWeight: 700, fontSize: '0.9rem' }}>
             파라미터 조작
           </h3>
-          <button
-            onClick={resetToDefaults}
-            className="flex items-center gap-1 px-2 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white transition-colors"
-            style={{ fontSize: '0.65rem' }}
-          >
-            <RotateCcw size={12} />
-            초기값 복원
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={loadCompanyDB}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white transition-colors"
+              style={{ fontSize: '0.65rem' }}
+              title="data.csv 파일의 변경사항을 다시 불러옵니다."
+            >
+              <RefreshCw size={12} /> 
+              DB 새로고침
+            </button>
+            <button
+              onClick={resetToDefaults}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white transition-colors"
+              style={{ fontSize: '0.65rem' }}
+              title="현재 블록의 모든 조작값을 지우고 초기화합니다."
+            >
+              <RotateCcw size={12} /> 
+              초기값 복원
+            </button>
+          </div>
         </div>
         
         {onClose && (
@@ -1082,33 +1333,35 @@ export function ParameterTabs({ onClose }: { onClose?: () => void }) {
         )}
       </div>
 
-      {/* Consortium Toggle (사업개요 탭일 때는 컨소시엄 선택 토글을 숨김 처리하여 직관성 향상) */}
       {activeTab !== 'overview' && (
         <div className="px-4 pt-3 flex gap-2">
           <button
             onClick={() => setActiveConsortium('gs')}
-            className={`flex-1 py-1.5 rounded-lg transition-all ${activeConsortium === 'gs' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}`}
+            className={`flex-1 py-1.5 rounded-lg transition-all ${
+              activeConsortium === 'gs' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+            }`}
             style={{ fontSize: '0.75rem', fontWeight: 600 }}
           >
-            GS건설 컨소시엄
+            {gsName}
           </button>
           <button
             onClick={() => setActiveConsortium('dl')}
-            className={`flex-1 py-1.5 rounded-lg transition-all ${activeConsortium === 'dl' ? 'bg-orange-600 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}`}
+            className={`flex-1 py-1.5 rounded-lg transition-all ${
+              activeConsortium === 'dl' ? 'bg-orange-600 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+            }`}
             style={{ fontSize: '0.75rem', fontWeight: 600 }}
           >
-            DL건설 컨소시엄
+            {dlName}
           </button>
         </div>
       )}
 
-      {/* Sub-tabs */}
       <div className="px-4 pt-2 flex gap-1">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-1 px-3 py-1 rounded-md transition-all ${
+            className={`flex items-center gap-1 px-3 py-1 rounded-md transition-all whitespace-nowrap ${
               activeTab === tab.id
                 ? 'text-white border-b-2'
                 : 'text-slate-500 hover:text-slate-300'
@@ -1119,60 +1372,63 @@ export function ParameterTabs({ onClose }: { onClose?: () => void }) {
               borderBottomColor: activeTab === tab.id ? (activeTab === 'overview' ? '#cbd5e1' : color) : 'transparent',
             }}
           >
-            {tab.icon}
+            {tab.icon} 
             {tab.label}
           </button>
         ))}
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 no-scrollbar" style={{ minHeight: 0 }}>
         {activeTab === 'overview' && (
           <OverviewPanel 
             projects={projects} 
             selectedProjectId={selectedProjectId} 
             setSelectedProject={setSelectedProject} 
-            updateProjectDetail={updateProjectDetail} 
+            updateProjectDetail={updateProjectDetail}
+            phases={phases} 
+            selectedPhaseId={selectedPhaseId} 
+            updatePhaseName={updatePhaseName}
           />
         )}
         {activeTab === 'equity' && (
-          <EquityPanel
-            consortium={consortium}
-            consortiumType={activeConsortium}
-            updateEquity={activeConsortium === 'gs' ? updateGsEquity : updateDlEquity}
-            applyCompanyData={applyCompanyData}
+          <EquityPanel 
+            consortium={consortium} 
+            consortiumType={activeConsortium} 
+            updateEquity={activeConsortium === 'gs' ? updateGsEquity : updateDlEquity} 
+            applyCompanyData={applyCompanyData} 
             updateMember={activeConsortium === 'gs' ? updateGsMember : updateDlMember} 
-            companyDB={companyDB}
-            color={color}
+            companyDB={companyDB} 
+            color={color} 
           />
         )}
         {activeTab === 'quant' && (
-          <QuantitativePanel
-            consortium={consortium}
-            gsConsortium={gsConsortium}
-            dlConsortium={dlConsortium}
-            nonQuantBaseScore={nonQuantBaseScore}
-            nonQuantJudgeDiff={nonQuantJudgeDiff}
-            updateNonQuant={updateNonQuant}
-            projectBaseBudget={projectBaseBudget}
-            gsProposedBudgetRate={gsProposedBudgetRate}
-            dlProposedBudgetRate={dlProposedBudgetRate}
-            gsProposedBudget={gsProposedBudget}
-            dlProposedBudget={dlProposedBudget}
-            updateProposedBudgetRate={updateProposedBudgetRate}
-            updateFinancials={activeConsortium === 'gs' ? updateGsFinancials : updateDlFinancials}
-            updateMember={activeConsortium === 'gs' ? updateGsMember : updateDlMember}
-            updateConsortium={activeConsortium === 'gs' ? updateGsConsortium : updateDlConsortium}
-            applyFinancials={applyFinancials}
-            color={color}
+          <QuantitativePanel 
+            consortium={consortium} 
+            gsConsortium={gsConsortium} 
+            dlConsortium={dlConsortium} 
+            nonQuantBaseScore={nonQuantBaseScore} 
+            nonQuantJudgeDiff={nonQuantJudgeDiff} 
+            updateNonQuant={updateNonQuant} 
+            projectBaseBudget={projectBaseBudget} 
+            gsProposedBudgetRate={gsProposedBudgetRate} 
+            dlProposedBudgetRate={dlProposedBudgetRate} 
+            gsProposedBudget={gsProposedBudget} 
+            dlProposedBudget={dlProposedBudget} 
+            updateProposedBudgetRate={updateProposedBudgetRate} 
+            updateFinancials={activeConsortium === 'gs' ? updateGsFinancials : updateDlFinancials} 
+            updateMember={activeConsortium === 'gs' ? updateGsMember : updateDlMember} 
+            updateConsortium={activeConsortium === 'gs' ? updateGsConsortium : updateDlConsortium} 
+            applyFinancials={applyFinancials} 
+            color={color} 
           />
         )}
         {activeTab === 'adjust' && (
-          <AdjustmentPanel
-            consortium={consortium}
-            updateMember={activeConsortium === 'gs' ? updateGsMember : updateDlMember}
-            updateConsortium={activeConsortium === 'gs' ? updateGsConsortium : updateDlConsortium}
-            color={color}
+          <AdjustmentPanel 
+            consortium={consortium} 
+            projectBaseBudget={projectBaseBudget} 
+            updateMember={activeConsortium === 'gs' ? updateGsMember : updateDlMember} 
+            updateConsortium={activeConsortium === 'gs' ? updateGsConsortium : updateDlConsortium} 
+            color={color} 
           />
         )}
       </div>
