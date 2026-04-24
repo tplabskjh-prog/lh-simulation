@@ -22,6 +22,9 @@ interface SimStore {
   setSelectedProject: (id: string) => void;
   updateProjectDetail: (patch: Partial<ProjectConfig>) => void;
 
+  // 상태 저장을 위한 속성 추가
+  savedStates: Record<string, any>;
+
   gsConsortium: ConsortiumConfig;
   dlConsortium: ConsortiumConfig;
 
@@ -65,6 +68,8 @@ export const useSimStore = create<SimStore>()(
     (set, get) => ({
       phases: PHASES,
       selectedPhaseId: '1-1',
+      savedStates: {}, // 초기 저장 상태 빈 객체로 설정
+      
       setSelectedPhase: (id) => {
         const { projects, setSelectedProject } = get();
         const phaseProjects = projects.filter(p => p.phaseId === id);
@@ -88,22 +93,52 @@ export const useSimStore = create<SimStore>()(
       },
 
       setSelectedProject: (id) => {
-        const p = get().projects.find((proj) => proj.id === id);
+        const state = get();
+        const prevId = state.selectedProjectId;
+        
+        // 1. 현재 화면에 있던 상태를 백업
+        const currentSavedStates = { ...state.savedStates };
+        if (prevId) {
+          currentSavedStates[prevId] = {
+            gsConsortium: state.gsConsortium,
+            dlConsortium: state.dlConsortium,
+            nonQuantBaseScore: state.nonQuantBaseScore,
+            nonQuantJudgeDiff: state.nonQuantJudgeDiff,
+            projectBaseBudget: state.projectBaseBudget,
+            gsProposedBudgetRate: state.gsProposedBudgetRate,
+            dlProposedBudgetRate: state.dlProposedBudgetRate,
+            gsProposedBudget: state.gsProposedBudget,
+            dlProposedBudget: state.dlProposedBudget,
+          };
+        }
+
+        // 2. 이동할 새 프로젝트의 기본 예산 계산
+        const p = state.projects.find((proj) => proj.id === id);
         const budgetMatch = p ? p.budget.replace(/,/g, '').match(/\d+/) : null;
         const defaultBudget = budgetMatch ? parseInt(budgetMatch[0], 10) : 0;
 
-        set({
-          selectedProjectId: id,
-          gsConsortium: { ...DEFAULT_GS_CONSORTIUM, priceScore: 200 },
-          dlConsortium: { ...DEFAULT_DL_CONSORTIUM, priceScore: 200 },
-          nonQuantBaseScore: 0,
-          nonQuantJudgeDiff: 0,
-          projectBaseBudget: defaultBudget,
-          gsProposedBudgetRate: 100,
-          dlProposedBudgetRate: 100,
-          gsProposedBudget: defaultBudget,
-          dlProposedBudget: defaultBudget,
-        });
+        // 3. 이동할 프로젝트의 저장된 기록이 있으면 복원, 없으면 초기화
+        if (currentSavedStates[id]) {
+          set({
+            selectedProjectId: id,
+            savedStates: currentSavedStates,
+            ...currentSavedStates[id] // 저장된 상태 덮어쓰기
+          });
+        } else {
+          set({
+            selectedProjectId: id,
+            savedStates: currentSavedStates,
+            gsConsortium: { ...DEFAULT_GS_CONSORTIUM, priceScore: 200 },
+            dlConsortium: { ...DEFAULT_DL_CONSORTIUM, priceScore: 200 },
+            nonQuantBaseScore: 0,
+            nonQuantJudgeDiff: 0,
+            projectBaseBudget: defaultBudget,
+            gsProposedBudgetRate: 100,
+            dlProposedBudgetRate: 100,
+            gsProposedBudget: defaultBudget,
+            dlProposedBudget: defaultBudget,
+          });
+        }
       },
 
       updateProjectDetail: (patch) => set((s) => {
@@ -184,7 +219,6 @@ export const useSimStore = create<SimStore>()(
           businessPlanViolations: targetCompany.businessPlanViolations,
           defectHandlingPenalty: targetCompany.defectHandlingPenalty,
           
-          // 👇 누락되었던 가점 항목 3종 자동 연동 복구!
           csIndex: targetCompany.csIndex,
           bondTypeForBonus: targetCompany.bondTypeForBonus as any,
           bondRatingForBonus: targetCompany.bondRatingForBonus,
@@ -292,6 +326,7 @@ export const useSimStore = create<SimStore>()(
         dlProposedBudgetRate: state.dlProposedBudgetRate,
         gsProposedBudget: state.gsProposedBudget,
         dlProposedBudget: state.dlProposedBudget,
+        savedStates: state.savedStates, // 상태 백업 객체 스토리지 저장 연동
       }),
     }
   )
